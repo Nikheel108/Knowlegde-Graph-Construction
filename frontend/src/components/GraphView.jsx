@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import ReactFlow, { Background, Controls, MiniMap, Panel, Handle, Position } from '@xyflow/react'
+import { ReactFlow, Background, Controls, MiniMap, Panel, Handle, Position } from '@xyflow/react'
 import dagre from 'dagre'
 import { Network, ZoomIn } from 'lucide-react'
 
