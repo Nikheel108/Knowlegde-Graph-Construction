@@ -188,7 +188,7 @@ The current version extracts text layers, not scanned-image OCR. Convert the doc
 
 - **Vectorization:** a local smoothed TF-IDF baseline reports vocabulary size and salient terms for the analyzed document.
 - **Sentiment:** a small transparent lexicon baseline reports per-sentence and document labels/scores. It is educational, not a trained or calibrated classifier.
-- **Topics:** a compact collapsed-Gibbs LDA implementation suggests up to three topics from the current document sentences. Short documents may not yield meaningful topics; use a collection for stronger results.
+- **Topics:** a compact collapsed-Gibbs LDA implementation suggests up to three topics across the latest in-memory analyzed documents (up to 12 stored sessions plus the document currently being analyzed). Short collections may not yield meaningful topics; sessions disappear when the backend restarts.
 - **Grounded generative Q&A:** when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are set on the backend, the existing rule-matched graph evidence is sent to Gemini and factual claims are instructed to cite triple IDs. The API key is never sent to the browser. On request failure, the rule-based response remains available.
 
 ### Gemini environment
