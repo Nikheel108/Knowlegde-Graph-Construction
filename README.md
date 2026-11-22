@@ -182,3 +182,21 @@ The current version extracts text layers, not scanned-image OCR. Convert the doc
 3. Evaluate extraction with manually annotated gold-standard triples and report precision, recall and F1.
 4. Compare the rule-based baseline against a transformer relation-extraction model.
 5. Add user authentication, per-user document isolation and a retention policy before hosting it for multiple users.
+
+
+## Rubric-aligned NLP capabilities
+
+- **Vectorization:** a local smoothed TF-IDF baseline reports vocabulary size and salient terms for the analyzed document.
+- **Sentiment:** a small transparent lexicon baseline reports per-sentence and document labels/scores. It is educational, not a trained or calibrated classifier.
+- **Topics:** a compact collapsed-Gibbs LDA implementation suggests up to three topics across the latest in-memory analyzed documents (up to 12 stored sessions plus the document currently being analyzed). Short collections may not yield meaningful topics; sessions disappear when the backend restarts.
+- **Grounded generative Q&A:** when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are set on the backend, the existing rule-matched graph evidence is sent to Gemini and factual claims are instructed to cite triple IDs. The API key is never sent to the browser. On request failure, the rule-based response remains available.
+
+### Gemini environment
+
+Set these only in `backend/.env` locally and in the backend service environment in production (never in a `VITE_` variable): `GEMINI_API_KEY`, `LLM_PROVIDER=gemini`, and `LLM_MODEL=gemini-2.5-flash-lite`. Free-tier quotas can change. Do not send sensitive documents through the free tier; check the provider's current data terms.
+
+### Demo evaluation
+
+Run `python evaluate_rubric.py` from `backend` after installing the project dependencies and downloading `en_core_web_sm`. The script prints small hand-labelled sentiment and relation extraction metrics. This tiny demonstration set is not a statistically representative benchmark; expand and independently annotate it before making accuracy claims.
+
+After analyzing a document, open **NLP Insights** to review sentiment, TF-IDF terms and topic suggestions. In **Ask Your Graph**, questions continue to use graph triples as grounding evidence; Gemini is optional.
