@@ -133,6 +133,7 @@ export default function App() {
       graph: ['Knowledge graph explorer', 'Explore entities, directed relationships and their evidence.'],
       entities: ['Entity intelligence', 'Inspect named entities extracted from the source document.'],
       relations: ['Relation explorer', 'Review subject–predicate–object triples and supporting evidence.'],
+      insights: ['NLP insights', 'Review sentiment, TF-IDF terms and document topics.'],
       ask: ['Ask your graph', 'Get evidence-backed answers from the relationships in your document.'],
       exports: ['Export center', 'Take your extracted graph data into other analysis tools.'],
     }
