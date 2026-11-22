@@ -63,7 +63,7 @@ export default function GraphView({ data, query, onNodeSelect }) {
         edges={graphData.edges}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.22, maxZoom: 1.2 }}
+        fitViewOptions={{ padding: 0.12, maxZoom: 1.5 }}
         minZoom={0.15}
         maxZoom={2.2}
         onNodeClick={(_, node) => onNodeSelect?.(node.data.original)}
@@ -71,7 +71,7 @@ export default function GraphView({ data, query, onNodeSelect }) {
       >
         <Background color="#263852" gap={22} size={1} />
         <Controls position="bottom-left" />
-        <MiniMap pannable zoomable nodeColor="#4b82ba" maskColor="rgba(6, 13, 24, .72)" />
+        <MiniMap pannable zoomable nodeColor={(node) => node.selected ? '#8bc5ff' : '#5d91c8'} maskColor="rgba(22, 34, 51, .58)" />
         <Panel position="top-right" className="graph-hint"><ZoomIn size={13} /> Scroll to zoom · drag to explore</Panel>
       </ReactFlow>
     </div>
