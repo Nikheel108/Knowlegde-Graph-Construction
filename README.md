@@ -193,6 +193,8 @@ Use the language menu in the app before analyzing a sample or uploading a file:
 - **Hindi** uses Gemini to extract Hindi entities and relations while preserving their original script.
 - **Auto detect** asks Gemini to detect the source language and analyze it. Gemini handles other supported languages through this option as well.
 
+The built-in **ISRO Hindi** sample includes a curated analysis and sample-question answers that work without Gemini. Other Hindi documents and uploads still require the backend Gemini configuration.
+
 The Ask Your Graph panel accepts Hindi or English questions. Gemini selects relevant triples from the analyzed graph, replies in the question's language, and cites the source evidence IDs. The API key stays on the backend. Configure `GEMINI_API_KEY`, `LLM_PROVIDER=gemini`, and optionally `LLM_MODEL` in `backend/.env` (or the backend service environment). A backend restart is required after changing environment values.
 
 Gemini multilingual analysis is limited to 120,000 extracted characters per document. It sends the selected document text to Gemini for analysis. The local lexicon sentiment, TF-IDF and LDA features remain English-only and are not presented as multilingual results. Avoid sending sensitive documents unless the provider's current data terms permit it.
@@ -213,3 +215,14 @@ Set these only in `backend/.env` locally and in the backend service environment 
 Run `python evaluate_rubric.py` from `backend` after installing the project dependencies and downloading `en_core_web_sm`. The script prints small hand-labelled sentiment and relation extraction metrics. This tiny demonstration set is not a statistically representative benchmark; expand and independently annotate it before making accuracy claims.
 
 After analyzing a document, open **NLP Insights** to review sentiment, TF-IDF terms and topic suggestions. In **Ask Your Graph**, questions continue to use graph triples as grounding evidence; Gemini is optional.
+
+## Generate the project poster
+
+Install ReportLab if needed, then run the poster source script from the repository root:
+
+```powershell
+python -m pip install reportlab
+python scripts/generate_knowledgegraph_poster.py
+```
+
+By default it writes `output/pdf/knowledgegraph_ai_poster.pdf`. Use `--output poster.pdf` to choose another destination. The MITAOE mark is loaded from `assets/mitaoe_logo.png`.

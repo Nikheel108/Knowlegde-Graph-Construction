@@ -119,6 +119,30 @@ The Solar Energy Corporation of India promotes solar energy.
 The Paris Agreement aims to limit global warming.
 """,
     },
+    "hindi_isro": {
+        "title": "भारतीय अंतरिक्ष अनुसंधान संगठन (हिंदी)",
+        "category": "हिंदी · विज्ञान एवं अंतरिक्ष",
+        "description": "इसरो, उसके मुख्यालय और भारतीय अंतरिक्ष मिशनों पर आधारित हिंदी नमूना। इसका विश्लेषण पहले से तैयार है और Gemini API के बिना भी खुलता है।",
+        "filename": "isro_hindi_sample.txt",
+        "language_code": "hi",
+        "analysis_mode": "precomputed",
+        "questions": [
+            "इसरो की स्थापना किसने की?",
+            "इसरो का मुख्यालय कहाँ है?",
+            "इसरो ने कौन सा मिशन प्रक्षेपित किया?",
+            "चंद्रयान-3 मिशन का नेतृत्व किसने किया?",
+            "मंगलयान मिशन का विकास किसने किया?",
+            "इसरो के अध्यक्ष कौन हैं?",
+        ],
+        "text": """भारत सरकार ने 1969 में इसरो की स्थापना की।
+इसरो का मुख्यालय बेंगलुरु में स्थित है।
+इसरो ने 2023 में चंद्रयान-3 मिशन का प्रक्षेपण किया।
+चंद्रयान-3 मिशन का नेतृत्व एस. सोमनाथ ने किया।
+इसरो ने मंगलयान मिशन का विकास किया।
+भारत ने चंद्रयान-3 के माध्यम से चंद्रमा के दक्षिणी ध्रुव के पास सफल सॉफ्ट लैंडिंग की।
+एस. सोमनाथ इसरो के अध्यक्ष हैं।
+""",
+    },
 }
 
 # Backward-compatible default sample for older frontend versions.
@@ -820,6 +844,95 @@ def analyze_multilingual_document(raw_text: str, filename: str, requested_langua
     }
 
 
+def analyze_precomputed_hindi_sample(sample: dict[str, Any]) -> dict[str, Any]:
+    """Build the curated Hindi demonstration without calling an external model."""
+    raw_text = sample["text"]
+    filename = sample["filename"]
+    sentences = [line.strip() for line in raw_text.splitlines() if line.strip()]
+    mention_specs = [
+        [("भारत सरकार", "ORG"), ("1969", "DATE"), ("इसरो", "ORG")],
+        [("इसरो", "ORG"), ("बेंगलुरु", "GPE")],
+        [("इसरो", "ORG"), ("2023", "DATE"), ("चंद्रयान-3 मिशन", "MISSION")],
+        [("चंद्रयान-3 मिशन", "MISSION"), ("एस. सोमनाथ", "PERSON")],
+        [("इसरो", "ORG"), ("मंगलयान मिशन", "MISSION")],
+        [("भारत", "GPE"), ("चंद्रयान-3", "MISSION"), ("चंद्रमा के दक्षिणी ध्रुव", "LOCATION")],
+        [("एस. सोमनाथ", "PERSON"), ("इसरो", "ORG")],
+    ]
+    entity_mentions: list[dict[str, Any]] = []
+    types_by_name: dict[str, str] = {}
+    for sentence_index, specs in enumerate(mention_specs):
+        sentence = sentences[sentence_index]
+        used: set[tuple[int, int]] = set()
+        for text_value, entity_type in specs:
+            start = sentence.find(text_value)
+            if start < 0 or (start, start + len(text_value)) in used:
+                continue
+            used.add((start, start + len(text_value)))
+            types_by_name.setdefault(text_value, entity_type)
+            entity_mentions.append({
+                "id": f"mention-{sentence_index}-{start}", "text": text_value,
+                "type": entity_type, "sentence_index": sentence_index,
+                "sentence": sentence, "start_char": start,
+                "end_char": start + len(text_value),
+            })
+
+    triple_specs = [
+        ("भारत सरकार", "स्थापना की", "इसरो", 0),
+        ("इसरो", "मुख्यालय है", "बेंगलुरु", 1),
+        ("इसरो", "प्रक्षेपण किया", "चंद्रयान-3 मिशन", 2),
+        ("एस. सोमनाथ", "नेतृत्व किया", "चंद्रयान-3 मिशन", 3),
+        ("इसरो", "विकास किया", "मंगलयान मिशन", 4),
+        ("भारत", "सॉफ्ट लैंडिंग की", "चंद्रमा के दक्षिणी ध्रुव", 5),
+        ("एस. सोमनाथ", "अध्यक्ष हैं", "इसरो", 6),
+    ]
+    triples = [{
+        "id": f"hindi-triple-{i + 1}", "subject": subject, "predicate": predicate,
+        "object": obj, "source": filename, "sentence_index": sentence_index,
+        "sentence": sentences[sentence_index], "confidence": None,
+    } for i, (subject, predicate, obj, sentence_index) in enumerate(triple_specs)]
+    graph = build_graph(triples)
+    entity_type_counts = Counter(item["type"] for item in entity_mentions)
+    predicate_counts = Counter(item["predicate"] for item in triples)
+    triple_mentions = Counter(name for triple in triples for name in (triple["subject"], triple["object"]))
+    nodes = [{
+        "id": name, "name": name, "type": types_by_name.get(name, "ENTITY"),
+        "degree": int(graph.degree(name)), "in_degree": int(graph.in_degree(name)),
+        "out_degree": int(graph.out_degree(name)), "triple_mentions": int(triple_mentions[name]),
+    } for name in graph.nodes]
+    edges = [{
+        "id": triple["id"], "source": triple["subject"], "target": triple["object"],
+        "label": triple["predicate"], "source_doc": filename,
+        "sentence_index": triple["sentence_index"], "sentence": triple["sentence"],
+    } for triple in triples]
+    unavailable = {"label": "unavailable", "score": 0, "method": "precomputed_hindi_sample"}
+    return {
+        "id": str(uuid.uuid4()), "filename": filename,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "language_code": "hi", "language_name": "Hindi", "analysis_language": "hi",
+        "analysis_engine": "curated_hindi_sample",
+        "summary": "इस नमूना दस्तावेज़ में इसरो की स्थापना, मुख्यालय, अंतरिक्ष मिशनों और नेतृत्व से जुड़ी जानकारी है।",
+        "keywords": ["इसरो", "चंद्रयान-3", "मंगलयान मिशन", "एस. सोमनाथ", "बेंगलुरु"],
+        "source_chars": len(raw_text), "source_preview": raw_text[:1200],
+        "sentence_count": len(sentences), "raw_triple_count": len(triples),
+        "entity_count": graph.number_of_nodes(), "relation_count": len(triples),
+        "graph_edge_count": graph.number_of_edges(), "entity_mention_count": len(entity_mentions),
+        "entity_type_count": len(entity_type_counts),
+        "graph_density": round(float(nx.density(graph)), 4) if graph.number_of_nodes() > 1 else 0,
+        "average_degree": round(sum(dict(graph.degree()).values()) / graph.number_of_nodes(), 2) if graph.number_of_nodes() else 0,
+        "mean_extraction_confidence": None,
+        "entity_types": [{"type": key, "count": value} for key, value in entity_type_counts.most_common()],
+        "relation_types": [{"type": key, "count": value} for key, value in predicate_counts.most_common()],
+        "suggested_questions": sample["questions"],
+        "top_entities": sorted(nodes, key=lambda node: node["degree"], reverse=True)[:10],
+        "entities": entity_mentions, "triples": triples, "nodes": nodes, "edges": edges,
+        "sentences": [{"index": i, "text": sentence, "sentiment": unavailable} for i, sentence in enumerate(sentences)],
+        "sentiment": unavailable,
+        "vectorization": {"method": "not_available_for_precomputed_hindi_sample", "document_count": len(sentences), "vocabulary_size": 0, "top_terms": []},
+        "topics": [], "sample_category": sample["category"],
+        "_graph": graph, "_raw_text": raw_text,
+    }
+
+
 def find_entity(name: str, graph: nx.DiGraph):
     name_lower = name.lower().strip()
     for node in graph.nodes:
@@ -1003,6 +1116,8 @@ def list_sample_documents():
             "category": sample["category"],
             "description": sample["description"],
             "filename": sample["filename"],
+            "language_code": sample.get("language_code", "en"),
+            "analysis_mode": sample.get("analysis_mode", "live"),
             "preview": sample["text"][:900],
             "questions": sample["questions"],
             "characters": len(sample["text"]),
@@ -1029,7 +1144,8 @@ def analyze_named_sample(sample_id: str, language: str = "en"):
     if sample is None:
         raise HTTPException(status_code=404, detail="Sample document not found.")
     try:
-        result = analyze_document_for_language(sample["text"], sample["filename"], language)
+        result = (analyze_precomputed_hindi_sample(sample) if sample.get("analysis_mode") == "precomputed"
+                  else analyze_document_for_language(sample["text"], sample["filename"], language))
         if language == "en":
             result["suggested_questions"] = sample["questions"]
         result["sample_category"] = sample["category"]
@@ -1061,9 +1177,40 @@ def get_document(document_id: str):
     return public_result(require_document(document_id))
 
 
+def answer_curated_hindi_question(question: str, result: dict[str, Any]) -> dict[str, Any]:
+    """Answer the built-in Hindi sample's suggested questions from its fixed triples."""
+    normalized = question.strip().rstrip("?। ").casefold()
+    answers = {
+        text.casefold(): triple_index
+        for text, triple_index in zip(result["suggested_questions"], [0, 1, 2, 3, 4, 6])
+    }
+    triple_index = answers.get(normalized)
+    if triple_index is None:
+        for cue, index in [
+            ("स्थापना", 0), ("मुख्यालय", 1), ("प्रक्षेपण", 2),
+            ("नेतृत्व", 3), ("मंगलयान", 4), ("अध्यक्ष", 6),
+        ]:
+            if cue in normalized:
+                triple_index = index
+                break
+    if triple_index is None:
+        return {
+            "question": question,
+            "answer": "इस प्रश्न का उत्तर इस ऑफ़लाइन नमूना ग्राफ़ में नहीं मिला। ऊपर दिए गए नमूना प्रश्नों में से कोई चुनें।",
+            "matched_by": "No graph evidence", "matches": [], "llm_used": False,
+        }
+    triple = result["triples"][triple_index]
+    return {
+        "question": question, "answer": triple["sentence"],
+        "matched_by": "Offline Hindi sample evidence", "matches": [triple], "llm_used": False,
+    }
+
+
 @app.post("/api/documents/{document_id}/query")
 def ask_document(document_id: str, payload: QueryRequest):
     result = require_document(document_id)
+    if result.get("analysis_engine") == "curated_hindi_sample":
+        return answer_curated_hindi_question(payload.question, result)
     try:
         multilingual_question = bool(re.search(r"[^\x00-\x7F]", payload.question))
         multilingual_document = result.get("analysis_engine") == "gemini_multilingual"
