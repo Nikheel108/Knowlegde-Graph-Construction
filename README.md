@@ -17,6 +17,7 @@ An advanced full-stack dashboard built around the **Knowledge Graph Construction
 - Directed NetworkX graph with interactive React Flow visualization
 - Entity and predicate analytics, filtering and evidence inspection
 - Rule-based natural-language graph query with source-backed results
+- Gemini-powered multilingual document extraction and question answering, including Hindi
 - CSV, JSON and GraphML export
 - Built-in sample document library: Technology, Space Exploration, Science Discoveries and Climate Action
 - Sample document preview, one-click TXT download and one-click graph analysis
@@ -123,10 +124,10 @@ npm run dev
 |---|---|---|
 | GET | `/api/health` | API and spaCy-model status |
 | GET | `/api/documents` | In-memory analyzed document sessions |
-| POST | `/api/analyze` | Upload and analyze PDF/DOCX/TXT |
+| POST | `/api/analyze` | Upload and analyze PDF/DOCX/TXT; multipart `language` may be `en`, `hi` or `auto` |
 | GET | `/api/sample-documents` | List built-in sample documents and previews |
 | GET | `/api/sample-documents/{sample_id}/download` | Download a sample as TXT |
-| POST | `/api/analyze-sample/{sample_id}` | Analyze a selected built-in sample document |
+| POST | `/api/analyze-sample/{sample_id}` | Analyze a selected built-in sample; optional `?language=en|hi|auto` |
 | POST | `/api/analyze-sample` | Backward-compatible technology sample endpoint |
 | POST | `/api/analyze-text` | Analyze pasted text |
 | GET | `/api/documents/{id}` | Retrieve an analyzed document |
@@ -184,12 +185,24 @@ The current version extracts text layers, not scanned-image OCR. Convert the doc
 5. Add user authentication, per-user document isolation and a retention policy before hosting it for multiple users.
 
 
+## Multilingual analysis with Gemini
+
+Use the language menu in the app before analyzing a sample or uploading a file:
+
+- **English** uses the local spaCy and rule-based pipeline.
+- **Hindi** uses Gemini to extract Hindi entities and relations while preserving their original script.
+- **Auto detect** asks Gemini to detect the source language and analyze it. Gemini handles other supported languages through this option as well.
+
+The Ask Your Graph panel accepts Hindi or English questions. Gemini selects relevant triples from the analyzed graph, replies in the question's language, and cites the source evidence IDs. The API key stays on the backend. Configure `GEMINI_API_KEY`, `LLM_PROVIDER=gemini`, and optionally `LLM_MODEL` in `backend/.env` (or the backend service environment). A backend restart is required after changing environment values.
+
+Gemini multilingual analysis is limited to 120,000 extracted characters per document. It sends the selected document text to Gemini for analysis. The local lexicon sentiment, TF-IDF and LDA features remain English-only and are not presented as multilingual results. Avoid sending sensitive documents unless the provider's current data terms permit it.
+
 ## Rubric-aligned NLP capabilities
 
 - **Vectorization:** a local smoothed TF-IDF baseline reports vocabulary size and salient terms for the analyzed document.
 - **Sentiment:** a small transparent lexicon baseline reports per-sentence and document labels/scores. It is educational, not a trained or calibrated classifier.
 - **Topics:** a compact collapsed-Gibbs LDA implementation suggests up to three topics across the latest in-memory analyzed documents (up to 12 stored sessions plus the document currently being analyzed). Short collections may not yield meaningful topics; sessions disappear when the backend restarts.
-- **Grounded generative Q&A:** when `LLM_PROVIDER=gemini` and `GEMINI_API_KEY` are set on the backend, the existing rule-matched graph evidence is sent to Gemini and factual claims are instructed to cite triple IDs. The API key is never sent to the browser. On request failure, the rule-based response remains available.
+- **Grounded generative Q&A:** when configured, graph evidence is sent to Gemini and factual claims must cite triple IDs. English questions first use rule-matched evidence; multilingual questions use Gemini to select relevant graph triples. The API key is never sent to the browser. On request failure, English rule-based responses remain available.
 
 ### Gemini environment
 
